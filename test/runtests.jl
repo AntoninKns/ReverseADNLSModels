@@ -1,5 +1,5 @@
 using Test
-using NLPModels, ReverseADNLSModels
+using NLPModels, ReverseADNLSModels, BundleAdjustmentModels, LinearAlgebra
 
 @testset "basic" begin
   F!(Fx, x) = begin
@@ -29,4 +29,17 @@ using NLPModels, ReverseADNLSModels
   Jtu = similar(u, nvar)
   jtprod_residual!(model, x0, u, Jtu)
   @test Jtu ≈ [25, 11]
+end
+
+@testset "ReverseADNLSModel" begin
+  model = BundleAdjustmentModel("problem-49-7776")
+  ADmodel = ADBundleAdjustmentModel(model)
+  meta_nls = nls_meta(model)
+  Fx = residual(ADmodel, model.meta.x0)
+  S = typeof(model.meta.x0)
+  Jv = S(undef, meta_nls.nequ)
+  Jtv = S(undef, meta_nls.nvar)
+  Jx = jac_op_residual!(ADmodel, model.meta.x0, Jv, Jtv)
+
+  @test 2.39615629098822921515e+07 ≈ norm(Jx' * Fx)
 end
